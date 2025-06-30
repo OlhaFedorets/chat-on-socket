@@ -1,34 +1,32 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import {useEffect, useState} from 'react'
 import './App.css'
+import {io} from "socket.io-client";
 
 function App() {
-  const [count, setCount] = useState(0)
+    useEffect(() => {
+        const socket = io("http://samurai-chat-back.herokuapp.com");
+    }, []);
+
+    const [messages, setMessages] = useState([
+      {message: "Hello Victor", id: "123", user: {id: "3546", name: "Dimych"}},
+      {message: "Hello Dimych", id: "1sdf23", user: {id: "35dsf46", name: "Victor"}},
+  ])
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <div className={'App'}>
+        <div style={{border: '1px solid black', padding: '10px', height:'300px', overflowY: 'scroll'}}>
+            {messages.map((m, key) => {
+                return <div key={key}>
+                    <b>{m.user.name}:</b> {m.message}
+                    <hr/>
+                </div>
+            })}
+        </div>
+        <textarea>
+
+        </textarea>
+        <button>Send</button>
+    </div>
   )
 }
 
