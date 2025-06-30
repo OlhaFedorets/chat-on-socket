@@ -1,33 +1,110 @@
-import {useEffect, useState} from 'react'
-import './App.css'
-import {io} from "socket.io-client";
+import {useEffect, useRef, useState} from 'react';
+import {useDispatch, useSelector} from 'react-redux';
+import {createConnection, sendMessage, setClientName, typeMessage} from './chat-reducer';
+import type {AppStateType} from './main.tsx';
+
 
 function App() {
+    const messages = useSelector((state: AppStateType) => state.chat.messages);
+    const typingUsers = useSelector((state: AppStateType) => state.chat.typingUsers);
+    const dispatch = useDispatch();
+
+    const [message, setMessage] = useState('');
+    const [name, setName] = useState('Dimych');
+    const [isAutoScrollActive, setIsAutoScrollActive] = useState(true);
+    const [lastScrollTop, setLastScrollTop] = useState(0);
+
+    const messagesBlockRef = useRef<HTMLDivElement>(null);
+
     useEffect(() => {
-        const socket = io("http://samurai-chat-back.herokuapp.com");
-    }, []);
+        // @ts-ignore
+        dispatch(createConnection());
 
-    const [messages, setMessages] = useState([
-      {message: "Hello Victor", id: "123", user: {id: "3546", name: "Dimych"}},
-      {message: "Hello Dimych", id: "1sdf23", user: {id: "35dsf46", name: "Victor"}},
-  ])
+        return () => {
+        };
+    }, [dispatch]);
 
-  return (
-    <div className={'App'}>
-        <div style={{border: '1px solid black', padding: '10px', height:'300px', overflowY: 'scroll'}}>
-            {messages.map((m, key) => {
-                return <div key={key}>
-                    <b>{m.user.name}:</b> {m.message}
-                    <hr/>
-                </div>
-            })}
+    useEffect(() => {
+        if (isAutoScrollActive && messagesBlockRef.current) {
+            messagesBlockRef.current.scrollTo({
+                top: messagesBlockRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    }, [messages, isAutoScrollActive]);
+
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const element = e.currentTarget;
+        const maxScrollPosition = element.scrollHeight - element.clientHeight;
+
+        if (element.scrollTop > lastScrollTop && Math.abs(maxScrollPosition - element.scrollTop) < 10) {
+            setIsAutoScrollActive(true);
+        } else {
+            setIsAutoScrollActive(false);
+        }
+        setLastScrollTop(element.scrollTop);
+    };
+
+    return (
+        <div className="App">
+            <div
+                style={{
+                    border: '1px solid black',
+                    padding: '10px',
+                    width: '300px',
+                    height: '300px',
+                    overflowY: 'scroll'
+                }}
+                onScroll={handleScroll}
+                ref={messagesBlockRef}
+            >
+                {messages.map((m:any) => (
+                    <div key={m.id}>
+                        <b>{m.user.name}:</b> {m.message}
+                        <hr/>
+                    </div>
+                ))}
+                {typingUsers.map((m:any) => (
+                    <div key={m.id}>
+                        <b>{m.name}</b>
+                        ...печатает
+                        <hr/>
+                    </div>
+                ))}
+                <div ref={messagesBlockRef} /> {/* Анкор для автоскролла */}
+            </div>
+
+            <div style={{display: 'flex', flexDirection: 'column', width: '320px',}}>
+                <input
+                    value={name}
+                    onChange={(e) => setName(e.currentTarget.value)}
+                />
+                <button onClick={() => {
+                    // @ts-ignore
+                    dispatch(setClientName(name));
+                }}>
+                    Send name
+                </button>
+
+                <textarea
+                    style={{height: '50px'}}
+                    value={message}
+                    onKeyDown={() => {
+                        // @ts-ignore
+                        dispatch(typeMessage())
+                    }}
+                    onChange={(e) => setMessage(e.currentTarget.value)}
+                />
+                <button onClick={() => {
+                    // @ts-ignore
+                    dispatch(sendMessage(message));
+                    setMessage('');
+                }}>
+                    Send
+                </button>
+            </div>
         </div>
-        <textarea>
-
-        </textarea>
-        <button>Send</button>
-    </div>
-  )
+    );
 }
 
-export default App
+export default App;
